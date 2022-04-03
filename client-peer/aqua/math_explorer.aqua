@@ -1,0 +1,63 @@
+--math_explorer.aqua
+import "@fluencelabs/aqua-lib/builtin.aqua"
+import "@fluencelabs/aqua-lib/math.aqua"
+
+func count_peers(node:string) -> u32:
+    on node:
+        nodes <- Kademlia.neighborhood(node, nil, nil)
+        res <- Op.array_length(nodes)
+    <- res
+
+
+
+func dynamic_timestamp_getter(node:string)-> i64, u64, u64:
+    rtt  = 1000
+    err_value = 0
+    res: *u64
+    msg = "timeout"
+    dead_peers: *string
+
+    on node:
+        nodes <- Kademlia.neighborhood(node, nil, nil)
+        for n <- nodes par:
+            status: *string
+            on n:
+                res <- Peer.timestamp_ms()
+                status <<- "success"
+            par status <- Peer.timeout(rtt, msg)
+            if status! != "success":
+                res <<- err_value
+                dead_peers <<- n
+            Op.noop()
+    
+        n = Math.sub(Math.sub(Op.array_length(nodes), Op.array_length(dead_peers)),1)
+        join res[n]
+        -- TSOracle oracle_service_id
+        -- consensus <- TSOracle.ts_frequency(res, tolerance, threshold, err_value)
+    -- <- res, dead_peers
+    <- n, Op.array_length(nodes), Op.array_length(dead_peers)
+
+
+func dynamic_test(node:string)-> i64, u64, u64:
+    rtt  = 1000
+    err_value = 0
+    res: *u64
+    msg = "timeout"
+    dead_peers: *string
+
+    on node:
+        -- k <- Op.string_to_b58(node)
+        nodes <- Kademlia.neighborhood(node, nil, nil)
+        for n <- nodes par:
+            status: *string
+            on n:
+                res <- Peer.timestamp_ms()
+                status <<- "success"
+            par status <- Peer.timeout(rtt, msg)
+            if status! != "success":
+                res <<- err_value
+                dead_peers <<- n
+            Op.noop()
+    
+        n = Math.sub(Math.sub(Op.array_length(nodes), Op.array_length(dead_peers)),1)
+    <- n, Op.array_length(nodes), Op.array_length(dead_peers)
